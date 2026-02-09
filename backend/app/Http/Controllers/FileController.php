@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class FileController extends Controller
@@ -25,22 +26,32 @@ class FileController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['file' => 'required|file|max:102400']); // 100MB
+        try {
+            $request->validate(['file' => 'required|file|max:102400']); // 100MB
 
-        $uploadedFile = $request->file('file');
-        $storedName = Str::uuid() . '.' . $uploadedFile->getClientOriginalExtension();
-        $path = $uploadedFile->storeAs('files', $storedName, 's3');
+            $uploadedFile = $request->file('file');
+            $storedName = Str::uuid() . '.' . $uploadedFile->getClientOriginalExtension();
+            
+            // Changed from 's3' to 'local'
+            $path = $uploadedFile->storeAs('files', $storedName, 'local');
 
-        $file = File::create([
-            'user_id' => $request->user()->id,
-            'original_name' => $uploadedFile->getClientOriginalName(),
-            'stored_name' => $storedName,
-            'path' => $path,
-            'mime_type' => $uploadedFile->getMimeType(),
-            'size' => $uploadedFile->getSize(),
-        ]);
+            $file = File::create([
+                'user_id' => $request->user()->id,
+                'original_name' => $uploadedFile->getClientOriginalName(),
+                'stored_name' => $storedName,
+                'path' => $path,
+                'mime_type' => $uploadedFile->getMimeType(),
+                'size' => $uploadedFile->getSize(),
+            ]);
 
-        return response()->json($file, 201);
+            return response()->json($file, 201);
+        } catch (\Exception $e) {
+            Log::error('File upload error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Upload failed',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function download(File $file, Request $request)
@@ -49,7 +60,8 @@ class FileController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        return Storage::disk('s3')->download($file->path, $file->original_name);
+        // Changed from 's3' to 'local'
+        return Storage::disk('local')->download($file->path, $file->original_name);
     }
 
     public function destroy(File $file, Request $request)
@@ -58,7 +70,8 @@ class FileController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        Storage::disk('s3')->delete($file->path);
+        // Changed from 's3' to 'local'
+        Storage::disk('local')->delete($file->path);
         $file->delete();
 
         return response()->json(['message' => 'File deleted successfully']);
@@ -79,6 +92,8 @@ class FileController extends Controller
     public function downloadShared($token)
     {
         $file = File::where('share_token', $token)->firstOrFail();
-        return Storage::disk('s3')->download($file->path, $file->original_name);
+        
+        // Changed from 's3' to 'local'
+        return Storage::disk('local')->download($file->path, $file->original_name);
     }
 }
