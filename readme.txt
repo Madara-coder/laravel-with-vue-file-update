@@ -12,13 +12,13 @@ User Registration: Users can create an account with an email address and passwor
 Login: Users can log in with their registered email address and password.
 Logout: Users can log out of their account and end their login session.
 
-1. File Management
+2. File Management
 File Upload: Users can upload local files to the server.
 File Download: Users can download uploaded files.
 File Deletion: Users can delete files.
 File Sharing: Users can generate shareable links for files to share with others.
 
-1. File Display
+3. File Display
 File List Display: Displays a list of files uploaded by the user.
 Filter and Sort: Users can filter and sort files by upload date, file name, and file size.
 
